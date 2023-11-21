@@ -5,6 +5,8 @@
 **Introduction:** The World Cup's Effectiveness
 The World Cup is a melting pot of chaos and thrill, but embedded within this chaos is a pattern that defines champions. This analysis embarks on a mission to decode what constitutes a World Cup champion, using a blend of historical data and contemporary metrics from the football world. Central to our narrative is the understanding of key traits that catapult nations to glory in the biggest football tournament on the planet, with a spotlight on Argentina's triumph in 2022.
 
+The principal statistic that helps understand the winning probabilities is on-target shot percentage, influencing goals scoring probabilities, and hence victory chances.
+
 **Deeper Insights:** Performance Analysis in the Knockout Stages
 The journey begins by dissecting team performances in the knockout stages of the World Cup. A meticulous examination of goal attempts, pass completion, possession, and shots on target is conducted for each round, from the Round of 16 to the grand finale. This analysis is pivotal in unraveling how teams evolve and adapt as the stakes get higher, setting the stage for a deeper understanding of championship qualities.
 
@@ -18,7 +20,7 @@ In this segment, the spotlight turns to a comparative analysis of France and Arg
 Argentina's journey to becoming World Champions is dissected through a lens of detailed statistical analysis. Focusing on their attempts, free kicks, yellow cards, and more, this section uncovers the tactical nuances and strategic decisions that propelled them to the final. It’s a story of grit, flair, and tactical brilliance.
 
 **Decisive Moments:** The Keys to Victory
-The semi-finals and finals are where legends are born. Here, we analyze the critical factors of pass completion rate and goal-scoring efficiency, uncovering how these elements were instrumental in clinching victories during the most crucial stages of the tournament.
+The semi-finals and finals are where legends are born. Here, we analyze the critical factors of the pass completion rate, uncovering how these elements influenced the victory during the most crucial stages of the tournament.
 
 **Playmakers Compared:** Assists and Goals per 90 Minutes
 A champion team is often a reflection of its key players. This part of the story compares the performances of star players from France, Argentina, Croatia, and Morocco in terms of assists and goals per 90 minutes. It highlights how individual brilliance, combined with team effort, contributes to the making of a World Cup champion.
