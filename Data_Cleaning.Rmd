@@ -1,0 +1,379 @@
+---
+title: "Exploratory_Data"
+output: html_document
+date: "2023-11-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+library(wbstats)
+library(ggrepel)
+library(patchwork)
+library(leaflet)
+library(lubridate)
+library(broom)
+library(car)
+library(performance)
+library(ggfortify)
+library(huxtable)
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r}
+matches_22 <- vroom::vroom(here("/Users/alex/Library/CloudStorage/OneDrive-LondonBusinessSchool/Term 1/Data Visualisation/Fifa_Project/Fifa_world_cup_matches copy.csv"))
+```
+
+```{r}
+matches_22_comparison <- matches_22 %>% 
+  filter(team1 %in% c("ARGENTINA", "FRANCE") |
+         team2 %in% c("ARGENTINA", "FRANCE")) %>% 
+  select(team1, team2, `possession team1`, `possession team2`, `possession in contest`, `number of goals team1`, `number of goals team2`)
+  
+glimpse(matches_22)
+
+matches_22_clean <- matches_22 %>% 
+  rename_with(~ gsub(" ", "_", .), contains(" "))
+
+# Assuming your data is stored in a dataframe named soccer_data
+argentina_goals <- matches_22 %>%
+  filter(team1 == "ARGENTINA" | team2 == "ARGENTINA") %>%
+  mutate(argentina_goals = ifelse(team1 == "ARGENTINA", `number of goals team1`, `number of goals team2`),
+         argentina_goals = ifelse(team2 == "ARGENTINA", `number of goals team2`, `number of goals team1`),
+         argentina_possession = ifelse(team1 == "ARGENTINA", `possession team1`, `possession team2`),
+         argentina_possession = ifelse(team2 == "ARGENTINA", `possession team2`, `possession team1`)) %>% 
+  select(team1, team2, argentina_goals, argentina_possession, category)
+
+france_goals <- soccer_data %>%
+  filter(team1 == "FRANCE" | team2 == "FRANCE") %>%
+  summarise(total_goals = sum(`number of goals team1` + `number of goals team2`))
+
+argentina_goals
+france_goals
+
+glimpse(argentina_goals)
+```
+
+
+```{r}
+clean_quarterfinals_team1 <- matches_22_clean %>% 
+  filter(category == "Quarter-final") %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team1", Names)) %>% 
+  select(-team2) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team1", "", .), -1) %>% 
+  rename(Team = team1)
+
+clean_quarterfinals_team2 <- matches_22_clean %>% 
+  filter(category == "Quarter-final") %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team2", Names)) %>% 
+  select(-team1) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team2", "", .), -1) %>% 
+  rename(Team = team2)
+
+clean_quarterfinals <- rbind(clean_quarterfinals_team2, clean_quarterfinals_team1)
+
+glimpse(clean_quarterfinals)
+
+clean_quarterfinals_matches <- clean_quarterfinals
+
+clean_quarterfinals_matches$match <- NA
+clean_quarterfinals_matches$match[clean_quarterfinals_matches$Team %in% c("FRANCE", "ENGLAND")] <- 1
+clean_quarterfinals_matches$match[clean_quarterfinals_matches$Team %in% c("NETHERLANDS", "ARGENTINA")] <- 2
+clean_quarterfinals_matches$match[clean_quarterfinals_matches$Team %in% c("MOROCCO", "PORTUGAL")] <- 3
+clean_quarterfinals_matches$match[clean_quarterfinals_matches$Team %in% c("BRAZIL", "CROATIA")] <- 4
+
+clean_quarterfinals_matches$match <- factor(clean_quarterfinals_matches$match, levels = c(1, 2, 3, 4), labels = c("Match 1", "Match 2", "Match 3", "Match 4"))
+clean_quarterfinals_matches$match <- as.character(clean_quarterfinals_matches$match)
+
+clean_quarterfinals_matches
+
+write.csv(clean_quarterfinals_matches, "quarterfinals.csv", row.names = FALSE)
+
+#Doing Statistics:
+stats_quarters <- clean_quarterfinals_matches %>% 
+  mutate(
+    pass_completion = round((passes_completed/passes)*100, digits = 2),
+    percent_on_target = round((on_target_attempts / total_attempts) * 100, digits = 2),
+    percent_yellow_cards_fouls_against = round((yellow_cards / fouls_against) * 100, digits = 2),
+    offside_corners = round((offsides/corners)*100, digits = 2),
+    yellow_card_defensive_pressure = round((yellow_cards / defensive_pressures_applied)*100, digits = 2),
+    goals_attempts = round((number_of_goals / total_attempts) * 100, digits = 2),
+    goals_passes = round((number_of_goals / passes_completed)*100, digits = 2)
+  )
+
+write.csv(stats_quarters, "stats_quarterfinals.csv", row.names = FALSE)
+```
+
+
+```{r}
+#Doing total world cup:
+clean_total_team1 <- matches_22_clean %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2, conceded_team1, conceded_team2) %>% 
+  pivot_longer(cols = 3:34, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team1", Names)) %>% 
+  select(-team2) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team1", "", .), -1) %>% 
+  rename(Team = team1) 
+
+clean_total_team2 <- matches_22_clean %>%
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2, conceded_team1, conceded_team2) %>% 
+  pivot_longer(cols = 3:34, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team2", Names)) %>% 
+  select(-team1) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team2", "", .), -1) %>% 
+  rename(Team = team2) 
+
+clean_total <- rbind(clean_total_team2, clean_total_team1)
+
+clean_total_unest <- clean_total %>% 
+  unnest(everything()) 
+
+stats_total <- clean_total_unest %>% 
+  mutate(
+    pass_completion = round((passes_completed/passes)*100, digits = 2),
+    percent_on_target = round((on_target_attempts / total_attempts) * 100, digits = 2),
+    percent_yellow_cards_fouls_against = round((yellow_cards / fouls_against) * 100, digits = 2),
+    offside_corners = round((offsides/corners)*100, digits = 2),
+    yellow_card_defensive_pressure = round((yellow_cards / defensive_pressures_applied)*100, digits = 2),
+    goals_attempts = round((number_of_goals / total_attempts) * 100, digits = 2),
+    goals_passes = round((number_of_goals / passes_completed)*100, digits = 2)
+  ) %>% 
+  group_by(Team) %>% 
+  summarise(
+    average_goals_conceded = mean(conceded),
+    average_goals = mean(number_of_goals)
+  )
+
+write.csv(stats_total, "total_statistics_2.csv", row.names = FALSE)
+```
+
+```{r}
+clean_semi_team1 <- matches_22_clean %>% 
+  filter(category == "Semi-final") %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team1", Names)) %>% 
+  select(-team2) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team1", "", .), -1) %>% 
+  rename(Team = team1)
+
+clean_semi_team2 <- matches_22_clean %>% 
+  filter(category == "Semi-final") %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team2", Names)) %>% 
+  select(-team1) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team2", "", .), -1) %>% 
+  rename(Team = team2)
+
+clean_semi <- rbind(clean_semi_team2, clean_semi_team1)
+
+glimpse(clean_semi)
+
+clean_semi_matches <- clean_semi
+
+clean_semi_matches$match <- NA
+clean_semi_matches$match[clean_semi_matches$Team %in% c("ARGENTINA", "CROATIA")] <- 1
+clean_semi_matches$match[clean_semi_matches$Team %in% c("FRANCE", "MOROCCO")] <- 2
+
+clean_semi_matches$match <- factor(clean_semi_matches$match, levels = c(1, 2), labels = c("Match 1", "Match 2"))
+clean_semi_matches$match <- as.character(clean_semi_matches$match)
+
+clean_semi_matches
+
+write.csv(clean_semi_matches, "semifinals.csv", row.names = FALSE)
+
+#Doing Statistics:
+stats_semis <- clean_semi_matches %>% 
+  mutate(
+    pass_completion = round((passes_completed/passes)*100, digits = 2),
+    percent_on_target = round((on_target_attempts / total_attempts) * 100, digits = 2),
+    percent_yellow_cards_fouls_against = round((yellow_cards / fouls_against) * 100, digits = 2),
+    offside_corners = round((offsides/corners)*100, digits = 2),
+    yellow_card_defensive_pressure = round((yellow_cards / defensive_pressures_applied)*100, digits = 2),
+    goals_attempts = round((number_of_goals / total_attempts) * 100, digits = 2),
+    goals_passes = round((number_of_goals / passes_completed)*100, digits = 2)
+  )
+
+write.csv(stats_semis, "stats_semis.csv", row.names = FALSE)
+
+```
+
+```{r}
+clean_final_team1 <- matches_22_clean %>% 
+  filter(category %in% c("Final", "Play-off for third place")) %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team1", Names)) %>% 
+  select(-team2) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team1", "", .), -1) %>% 
+  rename(Team = team1)
+
+clean_final_team2 <- matches_22_clean %>% 
+  filter(category %in% c("Final", "Play-off for third place")) %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team2", Names)) %>% 
+  select(-team1) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team2", "", .), -1) %>% 
+  rename(Team = team2)
+
+clean_final <- rbind(clean_final_team2, clean_final_team1)
+
+glimpse(clean_final)
+
+clean_final_matches <- clean_final
+
+clean_final_matches$match <- NA
+clean_final_matches$match[clean_final_matches$Team %in% c("ARGENTINA", "FRANCE")] <- 1
+clean_final_matches$match[clean_final_matches$Team %in% c("CROATIA", "MOROCCO")] <- 2
+
+clean_final_matches$match <- factor(clean_final_matches$match, levels = c(1, 2), labels = c("Match 1", "Match 2"))
+clean_final_matches$match <- as.character(clean_final_matches$match)
+
+clean_final_matches
+
+write.csv(clean_final_matches, "finals.csv", row.names = FALSE)
+
+#Doing Statistics:
+stats_final <- clean_final_matches %>% 
+  mutate(
+    pass_completion = round((passes_completed/passes)*100, digits = 2),
+    percent_on_target = round((on_target_attempts / total_attempts) * 100, digits = 2),
+    percent_yellow_cards_fouls_against = round((yellow_cards / fouls_against) * 100, digits = 2),
+    offside_corners = round((offsides/corners)*100, digits = 2),
+    yellow_card_defensive_pressure = round((yellow_cards / defensive_pressures_applied)*100, digits = 2),
+    goals_attempts = round((number_of_goals / total_attempts) * 100, digits = 2),
+    goals_passes = round((number_of_goals / passes_completed)*100, digits = 2)
+  )
+
+write.csv(stats_final, "stats_final.csv", row.names = FALSE)
+
+```
+
+```{r}
+clean_six_team1 <- matches_22_clean %>% 
+  filter(category == "Round of 16") %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team1", Names)) %>% 
+  select(-team2) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team1", "", .), -1) %>% 
+  rename(Team = team1)
+
+clean_six_team2 <- matches_22_clean %>% 
+  filter(category == "Round of 16") %>% 
+  mutate(possession_team1 = as.numeric(gsub("%", "", possession_team1)),
+         possession_team2 = as.numeric(gsub("%", "", possession_team2)),
+         possession_in_contest = as.numeric(gsub("%", "", possession_in_contest))) %>% 
+  select(team1, team2, possession_team1, possession_team2, number_of_goals_team1, number_of_goals_team2, assists_team1, assists_team2, yellow_cards_team1, yellow_cards_team2, passes_team1, passes_team2, total_attempts_team1, total_attempts_team2, on_target_attempts_team1, on_target_attempts_team2, off_target_attempts_team1, off_target_attempts_team2, fouls_against_team1, fouls_against_team2, offsides_team1, offsides_team2, passes_completed_team1, passes_completed_team2, corners_team1, corners_team2, free_kicks_team1, free_kicks_team2, penalties_scored_team1, penalties_scored_team2, defensive_pressures_applied_team1, defensive_pressures_applied_team2) %>% 
+  pivot_longer(cols = 3:32, names_to = "Names", values_to = "values") %>% 
+  filter(grepl("team2", Names)) %>% 
+  select(-team1) %>% 
+  pivot_wider(names_from = Names, values_from = values) %>% 
+  rename_with(~ gsub("_team2", "", .), -1) %>% 
+  rename(Team = team2)
+
+clean_six <- rbind(clean_six_team2, clean_six_team1)
+
+glimpse(clean_six)
+
+clean_six_matches <- clean_six
+
+clean_six_matches$match <- NA
+clean_six_matches$match[clean_six_matches$Team %in% c("NETHERLANDS", "UNITED STATES")] <- 1
+clean_six_matches$match[clean_six_matches$Team %in% c("ARGENTINA", "AUSTRALIA")] <- 2
+clean_six_matches$match[clean_six_matches$Team %in% c("FRANCE", "POLAND")] <- 3
+clean_six_matches$match[clean_six_matches$Team %in% c("ENGLAND", "SENEGAL")] <- 4
+clean_six_matches$match[clean_six_matches$Team %in% c("JAPAN", "CROATIA")] <- 5
+clean_six_matches$match[clean_six_matches$Team %in% c("BRAZIL", "KOREA REPUBLIC")] <- 6
+clean_six_matches$match[clean_six_matches$Team %in% c("MOROCCO", "SPAIN")] <- 7
+clean_six_matches$match[clean_six_matches$Team %in% c("PORTUGAL", "SWITZERLAND")] <- 8
+
+clean_six_matches$match <- factor(clean_six_matches$match, levels = c(1, 2, 3, 4, 5, 6, 7, 8), labels = c("Match 1", "Match 2", "Match 3", "Match 4", "Match 5", "Match 6", "Match 7", "Match 8"))
+clean_six_matches$match <- as.character(clean_six_matches$match)
+
+clean_six_matches
+
+write.csv(clean_six_matches, "sixteen.csv", row.names = FALSE)
+
+#Doing Statistics:
+stats_six <- clean_six_matches %>% 
+  mutate(
+    pass_completion = round((passes_completed/passes)*100, digits = 2),
+    percent_on_target = round((on_target_attempts / total_attempts) * 100, digits = 2),
+    percent_yellow_cards_fouls_against = round((yellow_cards / fouls_against) * 100, digits = 2),
+    offside_corners = round((offsides/corners)*100, digits = 2),
+    yellow_card_defensive_pressure = round((yellow_cards / defensive_pressures_applied)*100, digits = 2),
+    goals_attempts = round((number_of_goals / total_attempts) * 100, digits = 2),
+    goals_passes = round((number_of_goals / passes_completed)*100, digits = 2)
+  )
+
+write.csv(stats_six, "stats_sixteen.csv", row.names = FALSE)
+
+```
+
+```{r}
+matches_18 <- vroom::vroom(here("/Users/alex/Downloads/archive (3)/Players_Score.csv"))
+
+glimpse(matches_18)
+
+```
+
+
