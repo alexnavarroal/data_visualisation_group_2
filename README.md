@@ -1,5 +1,7 @@
 # data_visualisation_group_2
-"From Stats to Glory: Argentina's Path to Triumph"
+
+**_"From Stats to Glory: Argentina's Path to Triumph"_**
+
 **Introduction:** The World Cup's Effectiveness
 The World Cup is a melting pot of chaos and thrill, but embedded within this chaos is a pattern that defines champions. This analysis embarks on a mission to decode what constitutes a World Cup champion, using a blend of historical data and contemporary metrics from the football world. Central to our narrative is the understanding of key traits that catapult nations to glory in the biggest football tournament on the planet, with a spotlight on Argentina's triumph in 2022.
 
