@@ -1,0 +1,5 @@
+"Team","possession","number_of_goals","assists","yellow_cards","passes","total_attempts","on_target_attempts","off_target_attempts","fouls_against","offsides","passes_completed","corners","free_kicks","penalties_scored","defensive_pressures_applied","match","pass_completion","percent_on_target","percent_yellow_cards_fouls_against","offside_corners","yellow_card_defensive_pressure","goals_attempts","goals_passes"
+"MOROCCO",45,1,0,2,494,7,2,5,11,2,428,3,15,0,277,"Match 2",86.64,28.57,18.18,66.67,0.72,14.29,0.23
+"FRANCE",40,3,1,3,516,10,5,3,19,4,419,5,28,2,409,"Match 1",81.2,50,15.79,80,0.73,30,0.72
+"CROATIA",45,2,2,0,491,14,4,8,13,2,430,6,13,0,288,"Match 2",87.58,28.57,0,33.33,0,14.29,0.47
+"ARGENTINA",46,3,1,4,648,21,9,9,26,4,544,6,22,1,280,"Match 1",83.95,42.86,15.38,66.67,1.43,14.29,0.55
